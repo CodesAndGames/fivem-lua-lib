@@ -1,330 +1,425 @@
 -- Client-Side Example using FiveM Library
 -- This file demonstrates client-side functionality only
 
--- Do note that if you are having errors, try assigning the library to a variable.
--- For example: local fivem = require('fivem-library')
--- This will allow you to use the library in your script wuth the fivem.* prefix.
-
 -- Wait for the library to load
 Citizen.CreateThread(function()
-    while not fivem do
-        Citizen.Wait(100)
-    end
-    
-    print('FiveM Library loaded on client!')
-    startClientExample()
+  while not fivem do
+    Citizen.Wait(100)
+  end
+
+  utils:print('FiveM Library loaded on client!')
+  startClientExample()
 end)
 
 function startClientExample()
-    -- ========================================
-    -- EVENTS EXAMPLES (Client-Side)
-    -- ========================================
-    
-    -- Listen for player spawn
-events:on('playerSpawned', function()
-  print('Player spawned! Setting up client...')
-  
-  -- Set player health and armor
-  players:setHp(200)
-  SetPedArmour(players:get(), 100)
-  
-  -- Teleport to spawn location
-  players:tp({x = -1037.74, y = -2738.04, z = 20.17})
-  
-  -- Notify server that player is ready
-  events:emitServer('playerReady')
-end)
-    
-    -- Listen for custom events from server
-events:on('serverMessage', function(message)
-  print('Server says:', message)
-end)
+  -- ========================================
+  -- EVENTS EXAMPLES (Client-Side)
+  -- ========================================
 
--- Listen for vehicle spawn requests
-events:on('spawnVehicle', function(model)
-  local playerCoords = players:pos()
-  local vehicle = vehicles:spawn(model, playerCoords)
-  
-  if vehicle ~= 0 then
-    -- Put player in vehicle
-    SetPedIntoVehicle(players:get(), vehicle, -1)
-    print('Vehicle spawned:', model)
-    
-    -- Notify server
-    events:emitServer('vehicleSpawned', model)
-  else
-    print('Failed to spawn vehicle:', model)
-  end
-end)
-    
-    -- ========================================
-    -- PLAYER EXAMPLES (Client-Side)
-    -- ========================================
-    
-    -- Monitor player health
-Citizen.CreateThread(function()
-  while true do
-    Citizen.Wait(5000) -- Check every 5 seconds
-    
-    local health = players:hp()
-    local coords = players:pos()
-    
-    -- Low health warning
-    if health < 50 then
-      print('Warning: Low health! Current health:', health)
-      events:emitServer('lowHealthWarning', health)
+  -- Handle server messages
+  events:on('serverMessage', function(message)
+    utils:print('Server says: {1}', message)
+  end)
+
+  -- Handle player info from server
+  events:on('playerInfo', function(playerData)
+    utils:print('Player info received: {1}', playerData.name)
+    utils:print('Health: {1}, Money: {2}, Level: {3}', playerData.health, playerData.money, playerData.level)
+  end)
+
+  -- Handle vehicle spawn requests from server
+  events:on('spawnVehicle', function(model)
+    local playerPos = players:pos()
+    local vehicle = vehicles:spawn(model, playerPos)
+
+    if vehicle and vehicle ~= 0 then
+      utils:print('Vehicle spawned: {1}', model)
+      events:emitServer('vehicleSpawned', model)
+    else
+      utils:print('Failed to spawn vehicle: {1}', model)
     end
-    
-    -- Log position every 30 seconds
-    if GetGameTimer() % 30000 < 5000 then
-      print('Current position:', coords.x, coords.y, coords.z)
+  end)
+
+  -- ========================================
+  -- PLAYER MANAGEMENT EXAMPLES (Client-Side)
+  -- ========================================
+
+  -- Get local player info
+  local function getLocalPlayerInfo()
+    local playerId = players:localId()
+    local serverId = players:serverId()
+    local playerName = players:name()
+    local playerPos = players:pos()
+    local playerHealth = players:hp()
+
+    return {
+      localId = playerId,
+      serverId = serverId,
+      name = playerName,
+      position = playerPos,
+      health = playerHealth
+    }
+  end
+
+  -- Monitor player health
+  local function monitorHealth()
+    local currentHealth = players:hp()
+
+    if currentHealth < 50 then
+      utils:print('Low health warning: {1}', currentHealth)
+      events:emitServer('lowHealthWarning', currentHealth)
     end
   end
-end)
-    
-    -- ========================================
-    -- VEHICLE EXAMPLES (Client-Side Only)
-    -- ========================================
-    
-    -- Monitor current vehicle
-Citizen.CreateThread(function()
-  while true do
-    Citizen.Wait(2000)
-    
+
+  -- ========================================
+  -- VEHICLE MANAGEMENT EXAMPLES (Client-Side)
+  -- ========================================
+
+  -- Get current vehicle info
+  local function getCurrentVehicleInfo()
     local vehicle = vehicles:get()
-    if vehicle ~= 0 then
-      local vehicleCoords = vehicles:pos(vehicle)
-      local speed = GetEntitySpeed(vehicle) * 3.6 -- km/h
-      
-      -- Log vehicle info
-      print('In vehicle - Speed:', math.floor(speed), 'km/h')
-      print('Vehicle position:', vehicleCoords.x, vehicleCoords.y, vehicleCoords.z)
-      
-      -- Check vehicle health
-      local health = GetVehicleEngineHealth(vehicle)
-      if health < 500 then
-        print('Warning: Vehicle engine health low!')
+
+    if vehicle and vehicle ~= 0 then
+      local vehiclePos = vehicles:pos(vehicle)
+      return {
+        handle = vehicle,
+        position = vehiclePos
+      }
+    end
+
+    return nil
+  end
+
+  -- Spawn vehicle at player location
+  local function spawnVehicleAtPlayer(model)
+    local playerPos = players:pos()
+    local vehicle = vehicles:spawn(model, playerPos)
+
+    if vehicle and vehicle ~= 0 then
+      utils:print('Vehicle {1} spawned at player location', model)
+      return vehicle
+    else
+      utils:print('Failed to spawn vehicle {1}', model)
+      return nil
+    end
+  end
+
+  -- Delete current vehicle
+  local function deleteCurrentVehicle()
+    local vehicle = vehicles:get()
+
+    if vehicle and vehicle ~= 0 then
+      vehicles:del(vehicle)
+      utils:print('Current vehicle deleted')
+      return true
+    else
+      utils:print('No vehicle to delete')
+      return false
+    end
+  end
+
+  -- ========================================
+  -- UTILITIES EXAMPLES (Client-Side)
+  -- ========================================
+
+  -- Calculate distance between two points
+  local function calculateDistance(pos1, pos2)
+    return utils:dist(pos1, pos2)
+  end
+
+  -- Round numbers
+  local function roundNumber(num, decimals)
+    return utils:round(num, decimals)
+  end
+
+  -- Template string example
+  local function createWelcomeMessage(playerName, serverName)
+    return utils:tmpl('Welcome ${playerName} to ${serverName}!', playerName, serverName)
+  end
+
+  -- ========================================
+  -- CLASS SYSTEM EXAMPLES (Client-Side)
+  -- ========================================
+
+  -- Create a ClientPlayer class
+  local ClientPlayer = Class.create("ClientPlayer")
+
+  ClientPlayer:constructor(function(self)
+    self.localId = players:localId()
+    self.serverId = players:serverId()
+    self.name = players:name()
+    self.lastHealthCheck = 0
+    self.vehicleHistory = {}
+  end)
+
+  ClientPlayer:method("updateInfo", function(self)
+    self.name = players:name()
+    self.serverId = players:serverId()
+  end)
+
+  ClientPlayer:method("getPosition", function(self)
+    return players:pos()
+  end)
+
+  ClientPlayer:method("getHealth", function(self)
+    return players:hp()
+  end)
+
+  ClientPlayer:method("setHealth", function(self, health)
+    players:setHp(self.localId, health)
+  end)
+
+  ClientPlayer:method("teleport", function(self, coords)
+    players:tp(self.localId, coords)
+  end)
+
+  ClientPlayer:method("heal", function(self)
+    self:setHealth(200)
+    utils:print('Player {1} has been healed', self.name)
+  end)
+
+  ClientPlayer:method("getCurrentVehicle", function(self)
+    return vehicles:get()
+  end)
+
+  ClientPlayer:method("spawnVehicle", function(self, model)
+    local playerPos = self:getPosition()
+    local vehicle = vehicles:spawn(model, playerPos)
+
+    if vehicle and vehicle ~= 0 then
+      table.insert(self.vehicleHistory, {
+        model = model,
+        timestamp = GetGameTimer()
+      })
+      utils:print('Vehicle {1} spawned for {2}', model, self.name)
+    end
+
+    return vehicle
+  end)
+
+  ClientPlayer:method("deleteCurrentVehicle", function(self)
+    local vehicle = self:getCurrentVehicle()
+
+    if vehicle and vehicle ~= 0 then
+      vehicles:del(vehicle)
+      utils:print('Vehicle deleted for {1}', self.name)
+      return true
+    end
+
+    return false
+  end)
+
+  ClientPlayer:method("sendMessage", function(self, message)
+    events:emitServer('clientMessage', message)
+  end)
+
+  -- Create client player instance
+  local clientPlayer = ClientPlayer:new()
+
+  -- ========================================
+  -- COMMAND EXAMPLES (Client-Side)
+  -- ========================================
+
+  -- Register client commands
+  commands:reg('heal', function()
+    clientPlayer:heal()
+  end)
+
+  commands:reg('pos', function()
+    local pos = clientPlayer:getPosition()
+    utils:print('Position: {1}, {2}, {3}', pos.x, pos.y, pos.z)
+  end)
+
+  commands:reg('spawncar', function(source, args)
+    if #args >= 1 then
+      local model = args[1]
+      clientPlayer:spawnVehicle(model)
+    else
+      utils:print('Usage: /spawncar <model>')
+    end
+  end)
+
+  commands:reg('delcar', function()
+    clientPlayer:deleteCurrentVehicle()
+  end)
+
+  commands:reg('tp', function(source, args)
+    if #args >= 3 then
+      local x = tonumber(args[1])
+      local y = tonumber(args[2])
+      local z = tonumber(args[3])
+
+      if x and y and z then
+        clientPlayer:teleport({x = x, y = y, z = z})
+        utils:print('Teleported to {1}, {2}, {3}', x, y, z)
+      else
+        utils:print('Invalid coordinates')
+      end
+    else
+      utils:print('Usage: /tp <x> <y> <z>')
+    end
+  end)
+
+  commands:reg('info', function()
+    local info = getLocalPlayerInfo()
+    utils:print('=== Player Info ===')
+    utils:print('Name: {1}', info.name)
+    utils:print('Local ID: {1}', info.localId)
+    utils:print('Server ID: {1}', info.serverId)
+    utils:print('Health: {1}', info.health)
+    utils:print('Position: {1}, {2}, {3}', info.position.x, info.position.y, info.position.z)
+  end)
+
+  -- Add command suggestions
+  commands:suggest('heal', 'Heal yourself to full health')
+  commands:suggest('pos', 'Show your current position')
+  commands:suggest('spawncar', 'Spawn a vehicle', {{name = 'model', help = 'Vehicle model name'}})
+  commands:suggest('delcar', 'Delete your current vehicle')
+  commands:suggest('tp', 'Teleport to coordinates', {
+    {name = 'x', help = 'X coordinate'},
+    {name = 'y', help = 'Y coordinate'},
+    {name = 'z', help = 'Z coordinate'}
+  })
+  commands:suggest('info', 'Show player information')
+
+  -- ========================================
+  -- KEY MAPPING EXAMPLES (Client-Side)
+  -- ========================================
+
+  -- Register key mappings
+  keyMapping:reg('client_heal', 'Heal player', 'keyboard', 'H')
+  keyMapping:reg('client_info', 'Show player info', 'keyboard', 'I')
+  keyMapping:reg('client_spawn_car', 'Spawn random car', 'keyboard', 'C')
+
+  -- Handle key mapping commands
+  commands:reg('client_heal', function()
+    clientPlayer:heal()
+  end)
+
+  commands:reg('client_info', function()
+    commands:reg('info', function() end) -- Call the info command
+  end)
+
+  commands:reg('client_spawn_car', function()
+    local carModels = {'adder', 'zentorno', 't20', 'osiris', 'xa21'}
+    local randomModel = carModels[math.random(#carModels)]
+    clientPlayer:spawnVehicle(randomModel)
+  end)
+
+  -- ========================================
+  -- ENVIRONMENT DETECTION (Client-Side)
+  -- ========================================
+
+  -- Verify we're on client
+  if not utils:client() then
+    utils:print('ERROR: This script should only run on client!')
+    return
+  end
+
+  utils:print('Client environment detected correctly!')
+
+  -- ========================================
+  -- ERROR HANDLING EXAMPLES (Client-Side)
+  -- ========================================
+
+  -- Safe player operations
+  local function safePlayerOperation(operation, ...)
+    local success, result = pcall(operation, ...)
+
+    if not success then
+      utils:print('Player operation failed: {1}', result)
+      return false
+    end
+
+    return result
+  end
+
+  -- Safe teleportation
+  local function safeTeleport(coords)
+    return safePlayerOperation(function(targetCoords)
+      if not targetCoords or not targetCoords.x or not targetCoords.y or not targetCoords.z then
+        error('Invalid coordinates provided')
+      end
+
+      -- Check if coordinates are reasonable
+      if math.abs(targetCoords.x) > 10000 or math.abs(targetCoords.y) > 10000 or math.abs(targetCoords.z) > 1000 then
+        error('Coordinates out of reasonable bounds')
+      end
+
+      clientPlayer:teleport(targetCoords)
+      return true
+    end, coords)
+  end
+
+  -- Safe vehicle spawning
+  local function safeSpawnVehicle(model)
+    return safePlayerOperation(function(vehicleModel)
+      if not vehicleModel or type(vehicleModel) ~= 'string' then
+        error('Invalid vehicle model')
+      end
+
+      if #vehicleModel < 1 or #vehicleModel > 50 then
+        error('Vehicle model name too short or too long')
+      end
+
+      return clientPlayer:spawnVehicle(vehicleModel)
+    end, model)
+  end
+
+  -- ========================================
+  -- PERIODIC TASKS (Client-Side)
+  -- ========================================
+
+  -- Health monitoring thread
+  Citizen.CreateThread(function()
+    while true do
+      Citizen.Wait(5000) -- Every 5 seconds
+
+      monitorHealth()
+      clientPlayer:updateInfo()
+    end
+  end)
+
+  -- Position logging thread
+  Citizen.CreateThread(function()
+    while true do
+      Citizen.Wait(30000) -- Every 30 seconds
+
+      local pos = clientPlayer:getPosition()
+      local health = clientPlayer:getHealth()
+
+      utils:print('Status - Health: {1}, Position: {2}, {3}, {4}',
+        health, pos.x, pos.y, pos.z)
+    end
+  end)
+
+  -- Vehicle monitoring thread
+  Citizen.CreateThread(function()
+    while true do
+      Citizen.Wait(10000) -- Every 10 seconds
+
+      local vehicle = clientPlayer:getCurrentVehicle()
+
+      if vehicle and vehicle ~= 0 then
+        local vehiclePos = vehicles:pos(vehicle)
+        utils:print('In vehicle at: {1}, {2}, {3}',
+          vehiclePos.x, vehiclePos.y, vehiclePos.z)
       end
     end
-  end
-end)
-    
-    -- ========================================
-    -- UTILITIES EXAMPLES (Client-Side)
-    -- ========================================
-    
-    -- Distance calculation example
-local function checkDistanceToTarget(targetCoords)
-  local playerCoords = players:pos()
-  local distance = utils:dist(playerCoords, targetCoords)
-  
-  if distance < 10 then
-    print('Close to target! Distance:', utils:round(distance, 2), 'units')
-    return true
-  end
-  
-  return false
-end
+  end)
 
--- Template string example
-local function createStatusMessage()
-  local health = players:hp()
-  local coords = players:pos()
-  local vehicle = vehicles:get()
-  
-  local message = utils:tmpl('Health: ${health} | Position: ${x}, ${y}, ${z} | In Vehicle: ${inVehicle}', 
-    health, coords.x, coords.y, coords.z, vehicle ~= 0 and 'Yes' or 'No')
-  
-  print(message)
-  return message
-end
-    
-    -- ========================================
-    -- CLASS SYSTEM EXAMPLES (Client-Side)
-    -- ========================================
-    
-    -- Create a Player class for client-side use
-    local ClientPlayer = Class.create("ClientPlayer")
-    
-    ClientPlayer:constructor(function(self)
-        self.lastPosition = players.pos()
-        self.healthHistory = {}
-        self.vehicleHistory = {}
-    end)
-    
-    ClientPlayer:method("updatePosition", function(self)
-  local currentPos = players:pos()
-  local distance = utils:dist(self.lastPosition, currentPos)
-  
-  if distance > 100 then
-    print('Player moved', utils:round(distance, 2), 'units')
-  end
-  
-  self.lastPosition = currentPos
-end)
+  -- ========================================
+  -- INITIALIZATION
+  -- ========================================
 
-ClientPlayer:method("addHealthRecord", function(self)
-  local health = players:hp()
-  table.insert(self.healthHistory, {
-    health = health,
-    timestamp = GetGameTimer()
-  })
-  
-  -- Keep only last 10 records
-  if #self.healthHistory > 10 then
-    table.remove(self.healthHistory, 1)
-  end
-end)
+  -- Notify server that client is ready
+  Citizen.CreateThread(function()
+    Citizen.Wait(2000) -- Wait 2 seconds for everything to load
+    events:emitServer('playerReady')
+    utils:print('Client ready! Notified server.')
+  end)
 
-ClientPlayer:method("getAverageHealth", function(self)
-  if #self.healthHistory == 0 then
-    return 0
-  end
-  
-  local total = 0
-  for _, record in ipairs(self.healthHistory) do
-    total = total + record.health
-  end
-  
-  return utils:round(total / #self.healthHistory, 0)
-end)
-    
-    -- Create player instance
-    local clientPlayer = ClientPlayer:new()
-    
-    -- Update player data every 10 seconds
-    Citizen.CreateThread(function()
-        while true do
-            Citizen.Wait(10000)
-            
-            clientPlayer:updatePosition()
-            clientPlayer:addHealthRecord()
-            
-            local avgHealth = clientPlayer:getAverageHealth()
-            print('Average health over time:', avgHealth)
-        end
-    end)
-    
-    -- ========================================
-    -- COMMAND EXAMPLES (Client-Side)
-    -- ========================================
-    
-    -- Register client commands
-commands:reg('heal', function()
-  players:setHp(200)
-  print('Player healed!')
-end, false)
-
-commands:reg('tp', function(source, args)
-  if #args >= 3 then
-    local x = tonumber(args[1])
-    local y = tonumber(args[2])
-    local z = tonumber(args[3])
-    
-    if x and y and z then
-      players:tp({x = x, y = y, z = z})
-      print('Teleported to:', x, y, z)
-    else
-      print('Invalid coordinates!')
-    end
-  else
-    print('Usage: /tp <x> <y> <z>')
-  end
-end, false)
-
-commands:reg('car', function(source, args)
-  if #args >= 1 then
-    local model = args[1]
-    events:emit('spawnVehicle', model)
-  else
-    print('Usage: /car <model>')
-  end
-end, false)
-    
-    RegisterCommand('status', function()
-        createStatusMessage()
-    end, false)
-    
-    -- ========================================
-    -- KEY BINDING EXAMPLES (Client-Side)
-    -- ========================================
-    
-    -- Bind F1 to show player info
-keyMapping:reg('showinfo', 'Show Player Info', 'keyboard', 'F1')
-commands:reg('showinfo', function()
-  local health = players:hp()
-  local coords = players:pos()
-  local vehicle = vehicles:get()
-  
-  utils:print('=== Player Info ===')
-  utils:print('Health: {1}', health)
-  utils:print('Position: {1}, {2}, {3}', coords.x, coords.y, coords.z)
-  utils:print('In Vehicle: {1}', vehicle ~= 0 and 'Yes' or 'No')
-  
-  if vehicle ~= 0 then
-    local speed = GetEntitySpeed(vehicle) * 3.6
-    utils:print('Vehicle Speed: {1} km/h', utils:round(speed, 1))
-  end
-end, false)
-    
-    -- ========================================
-    -- ENVIRONMENT DETECTION (Client-Side)
-    -- ========================================
-    
-    -- Verify we're on client
-if not utils:client() then
-  print('ERROR: This script should only run on client!')
-  return
-end
-    
-    print('Client environment detected correctly!')
-    
-    -- ========================================
-    -- ERROR HANDLING EXAMPLES (Client-Side)
-    -- ========================================
-    
-    -- Safe vehicle spawning
-local function safeSpawnVehicle(model, coords)
-  if not model or type(model) ~= 'string' then
-    print('Invalid vehicle model provided')
-    return 0
-  end
-  
-  if not coords or not coords.x or not coords.y or not coords.z then
-    print('Invalid coordinates provided')
-    return 0
-  end
-  
-  local vehicle = vehicles:spawn(model, coords)
-  
-  if vehicle == 0 then
-    print('Failed to spawn vehicle:', model)
-  else
-    print('Successfully spawned vehicle:', model)
-  end
-  
-  return vehicle
-end
-
--- Safe teleportation
-local function safeTeleport(coords)
-  if not coords or not coords.x or not coords.y or not coords.z then
-    print('Invalid coordinates for teleportation')
-    return false
-  end
-  
-  -- Check if coordinates are reasonable
-  if math.abs(coords.x) > 10000 or math.abs(coords.y) > 10000 or math.abs(coords.z) > 1000 then
-    print('Coordinates out of reasonable bounds')
-    return false
-  end
-  
-  players:tp(coords)
-  print('Teleported to:', coords.x, coords.y, coords.z)
-  return true
-end
-    
-    print('Client example loaded successfully!')
-    print('Available commands: /heal, /tp <x> <y> <z>, /car <model>, /status')
-    print('Press F1 to show player info')
+  utils:print('Client example loaded successfully!')
+  utils:print('Available commands: /heal, /pos, /spawncar <model>, /delcar, /tp <x> <y> <z>, /info')
+  utils:print('Key mappings: H (heal), I (info), C (spawn random car)')
 end 
