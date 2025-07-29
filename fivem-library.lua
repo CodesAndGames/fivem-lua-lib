@@ -150,14 +150,21 @@ local Players = Class.create("Players")
 
 Players:method("get", function(self, playerId)
   if isClient then
-    return GetPlayerPed(playerId or PlayerId())
+    local targetPlayerId = playerId or PlayerId()
+    local ped = GetPlayerPed(targetPlayerId)
+    if ped and ped ~= 0 then
+      return ped
+    else
+      return nil
+    end
   else
     -- Server-side: Get player ped by server ID
     if playerId then
-      return GetPlayerPed(playerId)
-    else
-      return nil -- Server doesn't have a "local" player
+      -- Server can't directly get player ped, this is client-side only
+      print("Warning: players:get() is client-side only")
+      return nil
     end
+    return nil -- Server doesn't have a "local" player
   end
 end)
 
@@ -179,17 +186,16 @@ end)
 
 Players:method("pos", function(self, playerId)
   if isClient then
-    local ped = GetPlayerPed(playerId or PlayerId())
-    return GetEntityCoords(ped)
-  else
-    -- Server-side: Get player coords by server ID
-    if playerId then
-      local ped = GetPlayerPed(playerId)
-      if ped and ped ~= 0 then
-        return GetEntityCoords(ped)
-      end
+    local targetPlayerId = playerId or PlayerId()
+    local ped = GetPlayerPed(targetPlayerId)
+    if ped and ped ~= 0 then
+      return GetEntityCoords(ped)
+    else
+      return {x = 0, y = 0, z = 0}
     end
-    return nil
+  else
+    print("Warning: players:pos() is client-only")
+    return {x = 0, y = 0, z = 0}
   end
 end)
 
@@ -209,41 +215,36 @@ Players:method("tp", function(self, playerId, coords)
       print("Warning: Invalid player ped for teleportation")
     end
   else
-    -- Server-side: Teleport player by server ID
-    if playerId and coords then
-      TriggerClientEvent('fivem:teleportPlayer', playerId, coords)
-    end
+    print("Warning: players:tp() is client-only")
   end
 end)
 
 Players:method("hp", function(self, playerId)
   if isClient then
-    local ped = GetPlayerPed(playerId or PlayerId())
-    return GetEntityHealth(ped)
-  else
-    -- Server-side: Get player health by server ID
-    if playerId then
-      local ped = GetPlayerPed(playerId)
-      if ped and ped ~= 0 then
-        return GetEntityHealth(ped)
-      end
+    local targetPlayerId = playerId or PlayerId()
+    local ped = GetPlayerPed(targetPlayerId)
+    if ped and ped ~= 0 then
+      return GetEntityHealth(ped)
+    else
+      return 0
     end
+  else
+    print("Warning: players:hp() is client-only")
     return 0
   end
 end)
 
 Players:method("setHp", function(self, playerId, health)
   if isClient then
-    local ped = GetPlayerPed(playerId or PlayerId())
-    SetEntityHealth(ped, health)
-  else
-    -- Server-side: Set player health by server ID
-    if playerId then
-      local ped = GetPlayerPed(playerId)
-      if ped and ped ~= 0 then
-        SetEntityHealth(ped, health)
-      end
+    local targetPlayerId = playerId or PlayerId()
+    local ped = GetPlayerPed(targetPlayerId)
+    if ped and ped ~= 0 then
+      SetEntityHealth(ped, health)
+    else
+      print("Warning: Invalid player ped for health setting")
     end
+  else
+    print("Warning: players:setHp() is client-only")
   end
 end)
 
@@ -455,7 +456,7 @@ _G.utils = utils
 _G.commands = commands
 _G.keyMapping = keyMapping
 
--- Add client-side event handler for server teleport requests
+-- Add client-side event handler for server teleport requests (if needed for server-side teleportation)
 if isClient then
   AddEventHandler('fivem:teleportPlayer', function(coords)
     local ped = PlayerPedId()
