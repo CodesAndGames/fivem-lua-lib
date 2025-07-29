@@ -148,115 +148,85 @@ end)
 -- Players class (Client-only with server fallbacks)
 local Players = Class.create("Players")
 
-Players:method("get", function(self, playerId)
+Players:method("get", function(self)
   if isClient then
-    local targetPlayerId = playerId or PlayerId()
-    local ped = GetPlayerPed(targetPlayerId)
+    local ped = GetPlayerPed(PlayerId())
     if ped and ped ~= 0 then
       return ped
     else
       return nil
     end
-  else
-    -- Server-side: Get player ped by server ID
-    if playerId then
-      -- Server can't directly get player ped, this is client-side only
-      print("Warning: players:get() is client-side only")
-      return nil
-    end
-    return nil -- Server doesn't have a "local" player
   end
 end)
 
 Players:method("serverId", function(self)
   if isClient then
     return GetPlayerServerId(PlayerId())
-  else
-    return nil -- Server doesn't have a server ID
   end
 end)
 
 Players:method("localId", function(self)
   if isClient then
     return PlayerId()
-  else
-    return nil -- Server doesn't have a local ID
   end
 end)
 
-Players:method("pos", function(self, playerId)
+Players:method("pos", function(self)
   if isClient then
-    local targetPlayerId = playerId or PlayerId()
-    local ped = GetPlayerPed(targetPlayerId)
+    local ped = GetPlayerPed(PlayerId())
     if ped and ped ~= 0 then
       return GetEntityCoords(ped)
     else
       return {x = 0, y = 0, z = 0}
     end
-  else
-    print("Warning: players:pos() is client-only")
-    return {x = 0, y = 0, z = 0}
-  end
+	end
 end)
 
-Players:method("tp", function(self, playerId, coords)
+Players:method("tp", function(self, coords)
   if isClient then
     if not coords or not coords.x or not coords.y or not coords.z then
       print("Warning: Invalid coordinates provided for teleportation")
       return
     end
     
-    local targetPlayerId = playerId or PlayerId()
-    local ped = GetPlayerPed(targetPlayerId)
+    local ped = GetPlayerPed(PlayerId())
     
     if ped and ped ~= 0 then
       SetEntityCoords(ped, coords.x, coords.y, coords.z, false, false, false, true)
     else
       print("Warning: Invalid player ped for teleportation")
     end
-  else
-    print("Warning: players:tp() is client-only")
   end
 end)
 
-Players:method("hp", function(self, playerId)
+Players:method("hp", function(self)
   if isClient then
-    local targetPlayerId = playerId or PlayerId()
-    local ped = GetPlayerPed(targetPlayerId)
+    local ped = GetPlayerPed(PlayerId())
     if ped and ped ~= 0 then
       return GetEntityHealth(ped)
     else
-      return 0
+      return "Couldn't get player health"
     end
-  else
-    print("Warning: players:hp() is client-only")
-    return 0
   end
 end)
 
-Players:method("setHp", function(self, playerId, health)
+Players:method("setHp", function(self, health)
   if isClient then
-    local targetPlayerId = playerId or PlayerId()
-    local ped = GetPlayerPed(targetPlayerId)
+    local ped = GetPlayerPed(PlayerId())
     if ped and ped ~= 0 then
       SetEntityHealth(ped, health)
     else
       print("Warning: Invalid player ped for health setting")
     end
-  else
-    print("Warning: players:setHp() is client-only")
   end
 end)
 
-Players:method("name", function(self, playerId)
+Players:method("name", function(self)
   if isClient then
-    return GetPlayerName(playerId or PlayerId())
+    return GetPlayerName(PlayerId())
   else
-    -- Server-side: Get player name by server ID
-    if playerId then
-      return GetPlayerName(playerId)
-    end
-    return nil
+	-- Server-side: Get player name by server ID
+		return GetPlayerName(source)
   end
 end)
 
@@ -266,9 +236,6 @@ local Vehicles = Class.create("Vehicles")
 Vehicles:method("get", function(self)
   if isClient then
     return GetVehiclePedIsIn(PlayerPedId(), false)
-  else
-    print("Warning: vehicles:get() is client-only")
-    return 0
   end
 end)
 
@@ -282,9 +249,6 @@ Vehicles:method("spawn", function(self, model, coords)
     local vehicle = CreateVehicle(hash, coords.x, coords.y, coords.z, 0.0, true, false)
     SetModelAsNoLongerNeeded(hash)
     return vehicle
-  else
-    print("Warning: vehicles:spawn() is client-only")
-    return 0
   end
 end)
 
@@ -293,25 +257,18 @@ Vehicles:method("del", function(self, vehicle)
     if DoesEntityExist(vehicle) then
       DeleteEntity(vehicle)
     end
-  else
-    print("Warning: vehicles:del() is client-only")
   end
 end)
 
 Vehicles:method("pos", function(self, vehicle)
   if isClient then
     return GetEntityCoords(vehicle)
-  else
-    print("Warning: vehicles:pos() is client-only")
-    return {x = 0, y = 0, z = 0}
   end
 end)
 
 Vehicles:method("tp", function(self, vehicle, coords)
   if isClient then
     SetEntityCoords(vehicle, coords.x, coords.y, coords.z, false, false, false, true)
-  else
-    print("Warning: vehicles:tp() is client-only")
   end
 end)
 
@@ -391,18 +348,18 @@ Utils:method("client", function(self)
   return isClient
 end)
 
--- Commands class (Shared)
-local Commands = Class.create("Commands")
+-- Command class (Shared)
+local Command = Class.create("Command")
 
-Commands:method("reg", function(self, name, handler, restricted)
+Command:method("reg", function(self, name, handler, restricted)
   return RegisterCommand(name, handler, restricted or false)
 end)
 
-Commands:method("suggest", function(self, name, help, params)
+Command:method("suggest", function(self, name, help, params)
   return TriggerEvent('chat:addSuggestion', name, help, params or {})
 end)
 
-Commands:method("remove", function(self, name)
+Command:method("remove", function(self, name)
   return TriggerEvent('chat:removeSuggestion', name)
 end)
 
@@ -412,16 +369,12 @@ local KeyMapping = Class.create("KeyMapping")
 KeyMapping:method("reg", function(self, commandName, description, defaultMapper, defaultParameter)
   if isClient then
     return RegisterKeyMapping(commandName, description, defaultMapper or 'keyboard', defaultParameter or '')
-  else
-    print("Warning: KeyMapping:reg() is client-only")
   end
 end)
 
 KeyMapping:method("remove", function(self, commandName)
   if isClient then
     return TriggerEvent('chat:removeSuggestion', commandName)
-  else
-    print("Warning: KeyMapping:remove() is client-only")
   end
 end)
 
@@ -430,7 +383,7 @@ local events = Events:new()
 local players = Players:new()
 local vehicles = Vehicles:new()
 local utils = Utils:new()
-local commands = Commands:new()
+local command = Command:new()
 local keyMapping = KeyMapping:new()
 
 -- Assign instances to main table
@@ -438,7 +391,7 @@ FiveM.events = events
 FiveM.players = players
 FiveM.vehicles = vehicles
 FiveM.utils = utils
-FiveM.commands = commands
+FiveM.command = command
 FiveM.keyMapping = keyMapping
 FiveM.Class = Class
 
@@ -453,7 +406,7 @@ _G.events = events
 _G.players = players
 _G.vehicles = vehicles
 _G.utils = utils
-_G.commands = commands
+_G.command = command
 _G.keyMapping = keyMapping
 
 -- Add client-side event handler for server teleport requests (if needed for server-side teleportation)
