@@ -16,19 +16,20 @@ A clean, object-oriented Lua library for FiveM development that simplifies commo
    server_script 'fivem-library.lua'
    ```
 4. **Use** the library in your scripts:
+
    ```lua
    -- Events
    events:on('playerSpawned', function()
      print('Player spawned!')
    end)
-   
+
    -- Players
    players:setHp(200)
    players:tp({x = 100, y = 200, z = 30})
-   
+
    -- Vehicles
    local vehicle = vehicles:spawn('adder', players:pos())
-   
+
    -- Utils
    utils:print('Health: {1}', players:hp())
    ```
@@ -45,6 +46,7 @@ A clean, object-oriented Lua library for FiveM development that simplifies commo
 ## 📖 Learn More
 
 Visit [https://docs.jaxdanger.com/](https://docs.jaxdanger.com/) for:
+
 - Complete API reference
 - Usage examples
 - Best practices
@@ -53,4 +55,4 @@ Visit [https://docs.jaxdanger.com/](https://docs.jaxdanger.com/) for:
 
 ---
 
-**Created by @jax.danger** 
+**Created by @jax.danger**
