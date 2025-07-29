@@ -19,7 +19,7 @@ function startServerExample()
   -- Handle player connections
   events:on('playerConnecting', function(name, setKickReason, deferrals)
     local playerId = source
-    utils:print('Player connecting: {1} ID: {2}', name, playerId)
+    utils:print('Player connecting: {1} ID: {2}', name, playerId or 'Unknown')
 
     -- Store player data
     playerDatabase[playerId] = {

@@ -195,8 +195,19 @@ end)
 
 Players:method("tp", function(self, playerId, coords)
   if isClient then
-    local ped = GetPlayerPed(playerId or PlayerId())
-    SetEntityCoords(ped, coords.x, coords.y, coords.z, false, false, false, true)
+    if not coords or not coords.x or not coords.y or not coords.z then
+      print("Warning: Invalid coordinates provided for teleportation")
+      return
+    end
+    
+    local targetPlayerId = playerId or PlayerId()
+    local ped = GetPlayerPed(targetPlayerId)
+    
+    if ped and ped ~= 0 then
+      SetEntityCoords(ped, coords.x, coords.y, coords.z, false, false, false, true)
+    else
+      print("Warning: Invalid player ped for teleportation")
+    end
   else
     -- Server-side: Teleport player by server ID
     if playerId and coords then

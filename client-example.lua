@@ -170,7 +170,7 @@ function startClientExample()
   end)
 
   ClientPlayer:method("teleport", function(self, coords)
-    players:tp(self.localId, coords)
+    players:tp(nil, coords)
   end)
 
   ClientPlayer:method("heal", function(self)
