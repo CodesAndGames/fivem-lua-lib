@@ -1,0 +1,455 @@
+-- FiveM Lua Library
+-- Provides cleaner APIs using metatables
+-- Supports both client and server-side usage
+
+local FiveM = {}
+
+-- Detect if we're running on server or client
+local isServer = IsDuplicityVersion()
+local isClient = not isServer
+
+-- Class System (Shared)
+local Class = {}
+Class.__index = Class
+
+-- Create a new class
+function Class.new(name, parent)
+  local cls = {}
+  cls.__name = name
+  cls.__parent = parent
+  cls.__methods = {}
+  cls.__static = {}
+  cls.__private = {}
+  
+  -- Set up inheritance
+  if parent then
+    setmetatable(cls, {__index = parent})
+    cls.__super = parent
+  end
+  
+  -- Constructor
+  cls.__init = function(self, ...)
+    if parent and parent.__init then
+      parent.__init(self, ...)
+    end
+  end
+  
+  -- Method to add methods to class
+  function cls:method(name, func)
+    self.__methods[name] = func
+  end
+  
+  -- Method to add static methods
+  function cls:static(name, func)
+    self.__static[name] = func
+  end
+  
+  -- Method to add private methods
+  function cls:private(name, func)
+    self.__private[name] = func
+  end
+  
+  -- Constructor method (cleaner syntax)
+  function cls:constructor(func)
+    self.__init = func
+  end
+  
+  -- Create instance
+  function cls:new(...)
+    local instance = {}
+    instance.__class = cls
+    instance.__name = cls.__name
+    
+    -- Copy methods
+    for name, func in pairs(cls.__methods) do
+      instance[name] = func
+    end
+    
+    -- Copy static methods
+    for name, func in pairs(cls.__static) do
+      instance[name] = func
+    end
+    
+    -- Set up inheritance chain
+    if parent then
+      setmetatable(instance, {__index = parent})
+    end
+    
+    -- Call constructor
+    if cls.__init then
+      cls.__init(instance, ...)
+    end
+    
+    return instance
+  end
+  
+  -- Super method for calling parent methods
+  function cls:super(...)
+    if parent and parent.__init then
+      return parent.__init(self, ...)
+    end
+  end
+  
+  -- Check if instance is of type
+  function cls:isInstanceOf(class)
+    local current = self.__class
+    while current do
+      if current == class then
+        return true
+      end
+      current = current.__parent
+    end
+    return false
+  end
+  
+  -- Get class name
+  function cls:getClassName()
+    return self.__name
+  end
+  
+  -- Extend class
+  function cls:extend(name)
+    return Class.new(name, cls)
+  end
+  
+  return cls
+end
+
+-- Create base class
+function Class.create(name)
+  return Class.new(name)
+end
+
+-- Events class (Shared)
+local Events = Class.create("Events")
+
+Events:method("on", function(self, eventName, callback)
+  return AddEventHandler(eventName, callback)
+end)
+
+-- Removed mod method as ModifyEventHandler is not a valid native
+
+Events:method("off", function(self, eventName)
+  return RemoveEventHandler(eventName)
+end)
+
+Events:method("emit", function(self, eventName, ...)
+  return TriggerEvent(eventName, ...)
+end)
+
+Events:method("emitServer", function(self, eventName, ...)
+  return TriggerServerEvent(eventName, ...)
+end)
+
+Events:method("emitClient", function(self, eventName, target, ...)
+  return TriggerClientEvent(eventName, target, ...)
+end)
+
+-- Players class (Client-only with server fallbacks)
+local Players = Class.create("Players")
+
+Players:method("get", function(self, playerId)
+  if isClient then
+    return GetPlayerPed(playerId or PlayerId())
+  else
+    -- Server-side: Get player ped by server ID
+    if playerId then
+      return GetPlayerPed(playerId)
+    else
+      return nil -- Server doesn't have a "local" player
+    end
+  end
+end)
+
+Players:method("serverId", function(self)
+  if isClient then
+    return GetPlayerServerId(PlayerId())
+  else
+    return nil -- Server doesn't have a server ID
+  end
+end)
+
+Players:method("localId", function(self)
+  if isClient then
+    return PlayerId()
+  else
+    return nil -- Server doesn't have a local ID
+  end
+end)
+
+Players:method("pos", function(self, playerId)
+  if isClient then
+    local ped = GetPlayerPed(playerId or PlayerId())
+    return GetEntityCoords(ped)
+  else
+    -- Server-side: Get player coords by server ID
+    if playerId then
+      local ped = GetPlayerPed(playerId)
+      if ped and ped ~= 0 then
+        return GetEntityCoords(ped)
+      end
+    end
+    return nil
+  end
+end)
+
+Players:method("tp", function(self, playerId, coords)
+  if isClient then
+    local ped = GetPlayerPed(playerId or PlayerId())
+    SetEntityCoords(ped, coords.x, coords.y, coords.z, false, false, false, true)
+  else
+    -- Server-side: Teleport player by server ID
+    if playerId and coords then
+      TriggerClientEvent('fivem:teleportPlayer', playerId, coords)
+    end
+  end
+end)
+
+Players:method("hp", function(self, playerId)
+  if isClient then
+    local ped = GetPlayerPed(playerId or PlayerId())
+    return GetEntityHealth(ped)
+  else
+    -- Server-side: Get player health by server ID
+    if playerId then
+      local ped = GetPlayerPed(playerId)
+      if ped and ped ~= 0 then
+        return GetEntityHealth(ped)
+      end
+    end
+    return 0
+  end
+end)
+
+Players:method("setHp", function(self, playerId, health)
+  if isClient then
+    local ped = GetPlayerPed(playerId or PlayerId())
+    SetEntityHealth(ped, health)
+  else
+    -- Server-side: Set player health by server ID
+    if playerId then
+      local ped = GetPlayerPed(playerId)
+      if ped and ped ~= 0 then
+        SetEntityHealth(ped, health)
+      end
+    end
+  end
+end)
+
+Players:method("name", function(self, playerId)
+  if isClient then
+    return GetPlayerName(playerId or PlayerId())
+  else
+    -- Server-side: Get player name by server ID
+    if playerId then
+      return GetPlayerName(playerId)
+    end
+    return nil
+  end
+end)
+
+-- Vehicles class (Client-only)
+local Vehicles = Class.create("Vehicles")
+
+Vehicles:method("get", function(self)
+  if isClient then
+    return GetVehiclePedIsIn(PlayerPedId(), false)
+  else
+    print("Warning: vehicles:get() is client-only")
+    return 0
+  end
+end)
+
+Vehicles:method("spawn", function(self, model, coords)
+  if isClient then
+    local hash = GetHashKey(model)
+    RequestModel(hash)
+    while not HasModelLoaded(hash) do
+      Wait(0)
+    end
+    local vehicle = CreateVehicle(hash, coords.x, coords.y, coords.z, 0.0, true, false)
+    SetModelAsNoLongerNeeded(hash)
+    return vehicle
+  else
+    print("Warning: vehicles:spawn() is client-only")
+    return 0
+  end
+end)
+
+Vehicles:method("del", function(self, vehicle)
+  if isClient then
+    if DoesEntityExist(vehicle) then
+      DeleteEntity(vehicle)
+    end
+  else
+    print("Warning: vehicles:del() is client-only")
+  end
+end)
+
+Vehicles:method("pos", function(self, vehicle)
+  if isClient then
+    return GetEntityCoords(vehicle)
+  else
+    print("Warning: vehicles:pos() is client-only")
+    return {x = 0, y = 0, z = 0}
+  end
+end)
+
+Vehicles:method("tp", function(self, vehicle, coords)
+  if isClient then
+    SetEntityCoords(vehicle, coords.x, coords.y, coords.z, false, false, false, true)
+  else
+    print("Warning: vehicles:tp() is client-only")
+  end
+end)
+
+-- Utility class (Shared)
+local Utils = Class.create("Utils")
+
+-- Removed wait method as FiveM already has Wait() native
+-- Removed print method as it's redundant with native print()
+
+Utils:method("debug", function(self, ...)
+  if Config and Config.debug then
+    print("[DEBUG]", ...)
+  end
+end)
+
+Utils:method("dist", function(self, pos1, pos2)
+  if type(pos1) == "vector3" and type(pos2) == "vector3" then
+    return #(pos1 - pos2)
+  elseif pos1.x and pos1.y and pos1.z and pos2.x and pos2.y and pos2.z then
+    local dx = pos1.x - pos2.x
+    local dy = pos1.y - pos2.y
+    local dz = pos1.z - pos2.z
+    return math.sqrt(dx * dx + dy * dy + dz * dz)
+  else
+    return 0
+  end
+end)
+
+Utils:method("round", function(self, num, decimals)
+  local mult = 10^(decimals or 0)
+  return math.floor(num * mult + 0.5) / mult
+end)
+
+Utils:method("print", function(self, template, ...)
+  local args = {...}
+  local result = template:gsub("{(%d+)}", function(index)
+    return tostring(args[tonumber(index)] or "")
+  end)
+  return print(result)
+end)
+
+Utils:method("tmpl", function(self, template, ...)
+  local args = {...}
+  local result = template:gsub("${([^}]+)}", function(key)
+    local index = tonumber(key)
+    if index then
+      return tostring(args[index] or "")
+    else
+      -- Try to find the variable in the calling scope
+      local level = 2
+      while level <= 10 do
+        local info = debug.getinfo(level, "S")
+        if not info then break end
+        
+        local i = 1
+        while true do
+          local name, val = debug.getlocal(level, i)
+          if not name then break end
+          if name == key then
+            return tostring(val or "")
+          end
+          i = i + 1
+        end
+        level = level + 1
+      end
+      return "${" .. key .. "}"
+    end
+  end)
+  return result
+end)
+
+Utils:method("server", function(self)
+  return isServer
+end)
+
+Utils:method("client", function(self)
+  return isClient
+end)
+
+-- Commands class (Shared)
+local Commands = Class.create("Commands")
+
+Commands:method("reg", function(self, name, handler, restricted)
+  return RegisterCommand(name, handler, restricted or false)
+end)
+
+Commands:method("suggest", function(self, name, help, params)
+  return TriggerEvent('chat:addSuggestion', name, help, params or {})
+end)
+
+Commands:method("remove", function(self, name)
+  return TriggerEvent('chat:removeSuggestion', name)
+end)
+
+-- KeyMapping class (Client-only)
+local KeyMapping = Class.create("KeyMapping")
+
+KeyMapping:method("reg", function(self, commandName, description, defaultMapper, defaultParameter)
+  if isClient then
+    return RegisterKeyMapping(commandName, description, defaultMapper or 'keyboard', defaultParameter or '')
+  else
+    print("Warning: KeyMapping:reg() is client-only")
+  end
+end)
+
+KeyMapping:method("remove", function(self, commandName)
+  if isClient then
+    return TriggerEvent('chat:removeSuggestion', commandName)
+  else
+    print("Warning: KeyMapping:remove() is client-only")
+  end
+end)
+
+-- Create instances
+local events = Events:new()
+local players = Players:new()
+local vehicles = Vehicles:new()
+local utils = Utils:new()
+local commands = Commands:new()
+local keyMapping = KeyMapping:new()
+
+-- Assign instances to main table
+FiveM.events = events
+FiveM.players = players
+FiveM.vehicles = vehicles
+FiveM.utils = utils
+FiveM.commands = commands
+FiveM.keyMapping = keyMapping
+FiveM.Class = Class
+
+-- Add environment detection
+FiveM.isServer = isServer
+FiveM.isClient = isClient
+
+-- Global access
+_G.fivem = FiveM
+_G.Class = Class
+_G.events = events
+_G.players = players
+_G.vehicles = vehicles
+_G.utils = utils
+_G.commands = commands
+_G.keyMapping = keyMapping
+
+-- Add client-side event handler for server teleport requests
+if isClient then
+  AddEventHandler('fivem:teleportPlayer', function(coords)
+    local ped = PlayerPedId()
+    SetEntityCoords(ped, coords.x, coords.y, coords.z, false, false, false, true)
+  end)
+end
+
+return FiveM
