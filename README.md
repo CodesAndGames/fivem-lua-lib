@@ -12,7 +12,8 @@ A clean, object-oriented Lua library for FiveM development that simplifies commo
 2. **Add** it to your resource folder
 3. **Include** it in your `fxmanifest.lua`:
    ```lua
-   shared_script 'fivem-library.lua'
+   client_script '@fivem-lua-lib/init.lua'
+   server_script '@fivem-lua-lib/init.lua'
    ```
 
 ## ✨ Features
