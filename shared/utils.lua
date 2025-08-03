@@ -33,7 +33,7 @@ end)
 
 Utils:method("tmpl", function(self, template, ...)
   local args = {...}
-  local result = template:gsub("${([^}]+)}", function(key)
+  local result = template:gsub("{([^}]+)}", function(key)
     local index = tonumber(key)
     if index then
       return tostring(args[index] or "")
@@ -55,7 +55,7 @@ Utils:method("tmpl", function(self, template, ...)
         end
         level = level + 1
       end
-      return "${" .. key .. "}"
+      return "{" .. key .. "}"
     end
   end)
   return result

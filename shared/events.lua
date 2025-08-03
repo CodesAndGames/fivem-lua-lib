@@ -1,7 +1,15 @@
 -- Events class (Shared)
 local Events = class("Events")
 
+-- Track registered network events
+Events.netEvents = {}
+
 Events:method("on", function(self, eventName, callback)
+  -- Auto-register as network event for all events
+  if not self.netEvents[eventName] then
+    RegisterNetEvent(eventName)
+    self.netEvents[eventName] = true
+  end
   return AddEventHandler(eventName, callback)
 end)
 
