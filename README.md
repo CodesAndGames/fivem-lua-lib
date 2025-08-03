@@ -6,32 +6,42 @@ A clean, object-oriented Lua library for FiveM development that simplifies commo
 
 **Full documentation available at: [https://docs.jaxdanger.com/](https://docs.jaxdanger.com/)**
 
+## 🚀 Installation
+
+The jd-library is now its own script. Here's how to install it:
+
+1. **Download** from GitHub
+2. **Add** the folder to your `resources` directory of your FXServer
+3. **Ensure** `jd-library` in your `server.cfg` before other resources that use it:
+   ```
+   ensure jd-library
+   ensure your-script-name
+   ```
+4. **Add** `"@jd-library/init.lua"` to `shared_scripts` in the `fxmanifest.lua` file of any script that uses jd-library:
+   ```lua
+   shared_script '@jd-library/init.lua'
+   ```
+
 ## 🚀 Quick Start
 
-1. **Download** the `fivem-library.lua` file
-2. **Add** it to your resource folder
-3. **Include** it in your `fxmanifest.lua`:
-   ```lua
-   client_script 'fivem-library.lua'
-   server_script 'fivem-library.lua'
-   ```
-4. **Use** the library in your scripts:
-   ```lua
-   -- Events
-   events:on('playerSpawned', function()
-     print('Player spawned!')
-   end)
-   
-   -- Players
-   players:setHp(200)
-   players:tp({x = 100, y = 200, z = 30})
-   
-   -- Vehicles
-   local vehicle = vehicles:spawn('adder', players:pos())
-   
-   -- Utils
-   utils:print('Health: {1}', players:hp())
-   ```
+Once installed, you can use the library in your scripts:
+
+```lua
+-- Events
+events:on('playerSpawned', function()
+  print('Player spawned!')
+end)
+
+-- Players
+players:setHp(200)
+players:tp({x = 100, y = 200, z = 30})
+
+-- Vehicles
+local vehicle = vehicles:spawn('adder', players:pos())
+
+-- Utils
+utils:print('Health: {1}', players:hp())
+```
 
 ## ✨ Features
 
