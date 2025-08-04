@@ -25,7 +25,10 @@ Events:method("emitClient", function(self, eventName, target, ...)
   return TriggerClientEvent(eventName, target, ...)
 end)
 
--- Make Events globally available
-_G.Events = Events
+-- Create instance
+local events = Events:new()
 
-return Events 
+-- Make Events class and instance globally available
+_ENV.events = events
+
+return Events

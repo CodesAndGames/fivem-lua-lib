@@ -10,27 +10,22 @@ shared_script "shared/class.lua"
 
 -- Shared scripts (available to both client and server)
 shared_scripts {
+	"shared/class.lua",
   "shared/events.lua",
   "shared/utils.lua",
   "shared/commands.lua",
-  "imports/shared.lua"
+  "init.lua"
 }
 
 -- Client scripts
 client_scripts {
   "client/players.lua",
   "client/vehicles.lua",
-  "client/keymapping.lua",
-  "imports/client.lua",
-  "init.lua"
+  "client/keymapping.lua"
 }
 
 -- Server scripts
 server_scripts {
-  "server/players.lua",
-  "init.lua"
+  "server/players.lua"
 }
 
-escrow_ignore {
-	"init.lua"
-}

@@ -31,7 +31,10 @@ Vehicles:method("pos", function(self, vehicle)
   return GetEntityCoords(vehicle)
 end)
 
--- Make Vehicles globally available
-_G.Vehicles = Vehicles
+-- Create instance
+local vehicles = Vehicles:new()
+
+-- Make Vehicles instance globally available (client-side)
+_ENV.vehicles = vehicles
 
 return Vehicles 

@@ -69,7 +69,10 @@ Utils:method("client", function(self)
   return isClient
 end)
 
--- Make Utils globally available
-_G.Utils = Utils
+-- Create instance
+local utils = Utils:new()
+
+-- Make Utils class and instance globally available
+_ENV.utils = utils
 
 return Utils 

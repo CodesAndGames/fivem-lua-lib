@@ -1,11 +1,14 @@
 -- KeyMapping class (Client-only)
-local KeyMapping = class("KeyMapping")
+local KeyMap = class("KeyMap")
 
-KeyMapping:method("reg", function(self, commandName, description, defaultMapper, defaultParameter)
+KeyMap:method("reg", function(self, commandName, description, defaultMapper, defaultParameter)
   return RegisterKeyMapping(commandName, description, defaultMapper or 'keyboard', defaultParameter or '')
 end)
 
--- Make KeyMapping globally available
-_G.KeyMapping = KeyMapping
+-- Create instance
+local keyMap = KeyMap:new()
 
-return KeyMapping 
+-- Make KeyMapping instance globally available (client-side)
+_ENV.keyMap = keyMap
+
+return KeyMap

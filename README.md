@@ -17,12 +17,9 @@ The jd-library is now its own script. Here's how to install it:
    ensure jd-library
    ensure your-script-name
    ```
-4. **Add** `"@jd-library/init.lua"` to `client_scripts` or `server_scripts` in the `fxmanifest.lua` file of any script that uses jd-library:
+4. **Add** `"@jd-library/init.lua"` to `shared_scripts` in the `fxmanifest.lua` file of any script that uses jd-library:
    ```lua
-		-- For client usage
-		client_script '@jd-library/init.lua'
-		-- For server usage
-		server_script "@jd-library/init.lua"
+   shared_script '@jd-library/init.lua'
    ```
 
 ## 🚀 Quick Start

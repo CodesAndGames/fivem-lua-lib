@@ -13,7 +13,10 @@ Commands:method("remove", function(self, name)
   return TriggerEvent('chat:removeSuggestion', name)
 end)
 
--- Make Commands globally available
-_G.Commands = Commands
+-- Create instance
+local commands = Commands:new()
+
+-- Make Commands class and instance globally available
+_ENV.commands = commands
 
 return Commands 

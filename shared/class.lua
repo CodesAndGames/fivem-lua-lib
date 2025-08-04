@@ -7,21 +7,21 @@ local getinfo = debug.getinfo
 
 -- Fallback implementations for table functions
 if not table.clone then
-    function table.clone(t)
-        local copy = {}
-        for k, v in pairs(t) do
-            copy[k] = v
-        end
-        return copy
+  function table.clone(t)
+    local copy = {}
+    for k, v in pairs(t) do
+      copy[k] = v
     end
+    return copy
+  end
 end
 
 if not table.wipe then
-    function table.wipe(t)
-        for k in pairs(t) do
-            t[k] = nil
-        end
+  function table.wipe(t)
+    for k in pairs(t) do
+      t[k] = nil
     end
+  end
 end
 
 ---Ensure the given argument or property has a valid type, otherwise throwing an error.
@@ -29,14 +29,14 @@ end
 ---@param var any
 ---@param expected type
 local function assertType(id, var, expected)
-    local received = type(var)
+  local received = type(var)
 
-    if received ~= expected then
-        error(("expected %s %s to have type '%s' (received %s)")
-            :format(type(id) == 'string' and 'field' or 'argument', id, expected, received), 3)
-    end
+  if received ~= expected then
+    error(("expected %s %s to have type '%s' (received %s)")
+      :format(type(id) == 'string' and 'field' or 'argument', id, expected, received), 3)
+  end
 
-    return true
+  return true
 end
 
 ---@alias ClassConstructor<T> fun(self: T, ...: unknown): nil
@@ -158,25 +158,25 @@ end
 ---Constructor method for cleaner syntax
 ---@param func ClassConstructor
 function mixins:constructor(func)
-    self.constructor = func
+  self.constructor = func
 end
 
 ---Method to add methods to class
 ---@param name string
 ---@param func function
 function mixins:method(name, func)
-    self._allowMethodAssignment = true
-    self[name] = func
-    self._allowMethodAssignment = false
+  self._allowMethodAssignment = true
+  self[name] = func
+  self._allowMethodAssignment = false
 end
 
 ---Method to add private methods
 ---@param name string
 ---@param func function
 function mixins:private(name, func)
-    self._allowMethodAssignment = true
-    self[name] = func
-    self._allowMethodAssignment = false
+  self._allowMethodAssignment = true
+  self[name] = func
+  self._allowMethodAssignment = false
 end
 
 ---Creates a new class.
@@ -186,34 +186,34 @@ end
 ---@param super? S
 ---@return `T`
 function class(name, super)
-    assertType(1, name, 'string')
+  assertType(1, name, 'string')
 
-    local class = table.clone(mixins)
+  local class = table.clone(mixins)
 
-    class.__name = name
-    class.__index = class
+  class.__name = name
+  class.__index = class
 
-    if super then
-        assertType('super', super, 'table')
-        setmetatable(class, super)
-        class.__parent = super
+  if super then
+    assertType('super', super, 'table')
+    setmetatable(class, super)
+    class.__parent = super
+  end
+
+  -- Prevent direct assignment to class methods
+  setmetatable(class, {
+    __index = getmetatable(class),
+    __newindex = function(self, key, value)
+      if type(value) == 'function' and not self._allowMethodAssignment then
+        error(("use :method('%s', function) instead of direct assignment"):format(key), 2)
+      end
+      rawset(self, key, value)
     end
+  })
 
-    -- Prevent direct assignment to class methods
-    setmetatable(class, {
-        __index = getmetatable(class),
-        __newindex = function(self, key, value)
-            if type(value) == 'function' and not self._allowMethodAssignment then
-                error(("use :method('%s', function) instead of direct assignment"):format(key), 2)
-            end
-            rawset(self, key, value)
-        end
-    })
-
-    return class
+  return class
 end
 
--- Make class globally available
-_G.class = class
+-- Make class globally available using _ENV (following ox_lib pattern)
+_ENV.class = class
 
 return class 

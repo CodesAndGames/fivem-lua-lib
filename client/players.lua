@@ -32,7 +32,10 @@ Players:method("name", function(self)
   return GetPlayerName(PlayerId())
 end)
 
--- Make Players globally available
-_G.Players = Players
+-- Create instance
+local players = Players:new()
+
+-- Make Players instance globally available (client-side)
+_ENV.players = players
 
 return Players 
